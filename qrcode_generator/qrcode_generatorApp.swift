@@ -27,8 +27,6 @@ struct QRCodeItem: Identifiable, Codable, Hashable {
 // 主应用程序
 @main
 struct qrcode_generatorApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
     var body: some Scene {
         MenuBarExtra("QR Code Generator", systemImage: "qrcode") {
             ContentView()
