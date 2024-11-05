@@ -1,0 +1,558 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		F6C67D6F2CDA50AC00DBD573 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C67D552CDA50AB00DBD573 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F6C67D5C2CDA50AB00DBD573;
+			remoteInfo = qrcode_generator;
+		};
+		F6C67D792CDA50AC00DBD573 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F6C67D552CDA50AB00DBD573 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F6C67D5C2CDA50AB00DBD573;
+			remoteInfo = qrcode_generator;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		F6C67D5D2CDA50AB00DBD573 /* qrcode_generator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = qrcode_generator.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6C67D6E2CDA50AC00DBD573 /* qrcode_generatorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = qrcode_generatorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6C67D782CDA50AC00DBD573 /* qrcode_generatorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = qrcode_generatorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		F6C67D5F2CDA50AB00DBD573 /* qrcode_generator */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = qrcode_generator;
+			sourceTree = "<group>";
+		};
+		F6C67D712CDA50AC00DBD573 /* qrcode_generatorTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = qrcode_generatorTests;
+			sourceTree = "<group>";
+		};
+		F6C67D7B2CDA50AC00DBD573 /* qrcode_generatorUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = qrcode_generatorUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F6C67D5A2CDA50AB00DBD573 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6C67D6B2CDA50AC00DBD573 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6C67D752CDA50AC00DBD573 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		F6C67D542CDA50AB00DBD573 = {
+			isa = PBXGroup;
+			children = (
+				F6C67D5F2CDA50AB00DBD573 /* qrcode_generator */,
+				F6C67D712CDA50AC00DBD573 /* qrcode_generatorTests */,
+				F6C67D7B2CDA50AC00DBD573 /* qrcode_generatorUITests */,
+				F6C67D5E2CDA50AB00DBD573 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F6C67D5E2CDA50AB00DBD573 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F6C67D5D2CDA50AB00DBD573 /* qrcode_generator.app */,
+				F6C67D6E2CDA50AC00DBD573 /* qrcode_generatorTests.xctest */,
+				F6C67D782CDA50AC00DBD573 /* qrcode_generatorUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F6C67D5C2CDA50AB00DBD573 /* qrcode_generator */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6C67D822CDA50AC00DBD573 /* Build configuration list for PBXNativeTarget "qrcode_generator" */;
+			buildPhases = (
+				F6C67D592CDA50AB00DBD573 /* Sources */,
+				F6C67D5A2CDA50AB00DBD573 /* Frameworks */,
+				F6C67D5B2CDA50AB00DBD573 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F6C67D5F2CDA50AB00DBD573 /* qrcode_generator */,
+			);
+			name = qrcode_generator;
+			packageProductDependencies = (
+			);
+			productName = qrcode_generator;
+			productReference = F6C67D5D2CDA50AB00DBD573 /* qrcode_generator.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F6C67D6D2CDA50AC00DBD573 /* qrcode_generatorTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6C67D852CDA50AC00DBD573 /* Build configuration list for PBXNativeTarget "qrcode_generatorTests" */;
+			buildPhases = (
+				F6C67D6A2CDA50AC00DBD573 /* Sources */,
+				F6C67D6B2CDA50AC00DBD573 /* Frameworks */,
+				F6C67D6C2CDA50AC00DBD573 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F6C67D702CDA50AC00DBD573 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F6C67D712CDA50AC00DBD573 /* qrcode_generatorTests */,
+			);
+			name = qrcode_generatorTests;
+			packageProductDependencies = (
+			);
+			productName = qrcode_generatorTests;
+			productReference = F6C67D6E2CDA50AC00DBD573 /* qrcode_generatorTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		F6C67D772CDA50AC00DBD573 /* qrcode_generatorUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F6C67D882CDA50AC00DBD573 /* Build configuration list for PBXNativeTarget "qrcode_generatorUITests" */;
+			buildPhases = (
+				F6C67D742CDA50AC00DBD573 /* Sources */,
+				F6C67D752CDA50AC00DBD573 /* Frameworks */,
+				F6C67D762CDA50AC00DBD573 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F6C67D7A2CDA50AC00DBD573 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F6C67D7B2CDA50AC00DBD573 /* qrcode_generatorUITests */,
+			);
+			name = qrcode_generatorUITests;
+			packageProductDependencies = (
+			);
+			productName = qrcode_generatorUITests;
+			productReference = F6C67D782CDA50AC00DBD573 /* qrcode_generatorUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F6C67D552CDA50AB00DBD573 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					F6C67D5C2CDA50AB00DBD573 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					F6C67D6D2CDA50AC00DBD573 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = F6C67D5C2CDA50AB00DBD573;
+					};
+					F6C67D772CDA50AC00DBD573 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = F6C67D5C2CDA50AB00DBD573;
+					};
+				};
+			};
+			buildConfigurationList = F6C67D582CDA50AB00DBD573 /* Build configuration list for PBXProject "qrcode_generator" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = F6C67D542CDA50AB00DBD573;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = F6C67D5E2CDA50AB00DBD573 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F6C67D5C2CDA50AB00DBD573 /* qrcode_generator */,
+				F6C67D6D2CDA50AC00DBD573 /* qrcode_generatorTests */,
+				F6C67D772CDA50AC00DBD573 /* qrcode_generatorUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F6C67D5B2CDA50AB00DBD573 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6C67D6C2CDA50AC00DBD573 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6C67D762CDA50AC00DBD573 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F6C67D592CDA50AB00DBD573 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6C67D6A2CDA50AC00DBD573 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6C67D742CDA50AC00DBD573 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F6C67D702CDA50AC00DBD573 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F6C67D5C2CDA50AB00DBD573 /* qrcode_generator */;
+			targetProxy = F6C67D6F2CDA50AC00DBD573 /* PBXContainerItemProxy */;
+		};
+		F6C67D7A2CDA50AC00DBD573 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F6C67D5C2CDA50AB00DBD573 /* qrcode_generator */;
+			targetProxy = F6C67D792CDA50AC00DBD573 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		F6C67D802CDA50AC00DBD573 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F6C67D812CDA50AC00DBD573 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		F6C67D832CDA50AC00DBD573 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = qrcode_generator/qrcode_generator.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"qrcode_generator/Preview Content\"";
+				DEVELOPMENT_TEAM = 84F8R9TAQN;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "qrcode-generator-Info.plist";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yiwen.qrcode-generator";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		F6C67D842CDA50AC00DBD573 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = qrcode_generator/qrcode_generator.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"qrcode_generator/Preview Content\"";
+				DEVELOPMENT_TEAM = 84F8R9TAQN;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "qrcode-generator-Info.plist";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yiwen.qrcode-generator";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		F6C67D862CDA50AC00DBD573 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84F8R9TAQN;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yiwen.qrcode-generatorTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/qrcode_generator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/qrcode_generator";
+			};
+			name = Debug;
+		};
+		F6C67D872CDA50AC00DBD573 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84F8R9TAQN;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yiwen.qrcode-generatorTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/qrcode_generator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/qrcode_generator";
+			};
+			name = Release;
+		};
+		F6C67D892CDA50AC00DBD573 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84F8R9TAQN;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yiwen.qrcode-generatorUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = qrcode_generator;
+			};
+			name = Debug;
+		};
+		F6C67D8A2CDA50AC00DBD573 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84F8R9TAQN;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.yiwen.qrcode-generatorUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = qrcode_generator;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F6C67D582CDA50AB00DBD573 /* Build configuration list for PBXProject "qrcode_generator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6C67D802CDA50AC00DBD573 /* Debug */,
+				F6C67D812CDA50AC00DBD573 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6C67D822CDA50AC00DBD573 /* Build configuration list for PBXNativeTarget "qrcode_generator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6C67D832CDA50AC00DBD573 /* Debug */,
+				F6C67D842CDA50AC00DBD573 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6C67D852CDA50AC00DBD573 /* Build configuration list for PBXNativeTarget "qrcode_generatorTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6C67D862CDA50AC00DBD573 /* Debug */,
+				F6C67D872CDA50AC00DBD573 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F6C67D882CDA50AC00DBD573 /* Build configuration list for PBXNativeTarget "qrcode_generatorUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6C67D892CDA50AC00DBD573 /* Debug */,
+				F6C67D8A2CDA50AC00DBD573 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F6C67D552CDA50AB00DBD573 /* Project object */;
+}
