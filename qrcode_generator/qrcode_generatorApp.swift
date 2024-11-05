@@ -9,6 +9,7 @@ import SwiftUI
 import CoreImage.CIFilterBuiltins
 import UserNotifications
 import AppKit
+import Carbon.HIToolbox // 用于处理快捷键
 
 // QR Code 数据模型
 struct QRCodeItem: Identifiable, Codable, Hashable {
@@ -92,12 +93,19 @@ class AppStateManager: ObservableObject {
     }
 }
 
-// 应用委托
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var popover: NSPopover?
+    var eventMonitor: Any?
+    var hotKeyRef: EventHotKeyRef?
     
-    func applicationDidFinishLaunching( notification: Notification) {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        setupStatusItem()
+        setupPopover()
+        setupGlobalHotkey()
+    }
+    
+    func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem?.button {
@@ -105,27 +113,125 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(togglePopover)
             button.target = self
         }
-        
+    }
+    
+    func setupPopover() {
         popover = NSPopover()
         popover?.contentSize = NSSize(width: 300, height: 400)
         popover?.behavior = .transient
         popover?.contentViewController = NSHostingController(rootView: ContentView())
+        
+        // 添加点击外部关闭 popover
+        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            if let strongSelf = self, let popover = strongSelf.popover, popover.isShown {
+                strongSelf.closePopover()
+            }
+        }
     }
+    
+    // 定义全局的事件处理函数
+    func hotKeyHandler(nextHandler: EventHandlerCallRef?, event: EventRef?, userData: UnsafeMutableRawPointer?) -> OSStatus {
+            guard let event = event else { return noErr }
+            
+            var hotKeyID = EventHotKeyID()
+            let status = GetEventParameter(
+                event,
+                EventParamName(kEventParamDirectObject),
+                EventParamType(typeEventHotKeyID),
+                nil,
+                MemoryLayout<EventHotKeyID>.size,
+                nil,
+                &hotKeyID
+            )
+            
+            if status == noErr {
+                let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData!).takeUnretainedValue()
+                DispatchQueue.main.async {
+                    appDelegate.togglePopover()
+                }
+            }
+            return noErr
+        }
+    
+    // 设置全局快捷键
+    func setupGlobalHotkey() {
+            // 创建唯一的快捷键标识
+            var hotKeyID = EventHotKeyID()
+            hotKeyID.signature = OSType("QRCD".utf8.reduce(0, { $0 << 8 + OSType($1) }))
+            hotKeyID.id = 1
+            
+            // 设置快捷键组合: Command + Control + Q
+            let modifiers = UInt32(cmdKey | controlKey)
+            let keyCode = UInt32(kVK_ANSI_Q)  // 使用 Q 键
+            
+            // 注册快捷键
+            let status = RegisterEventHotKey(
+                keyCode,
+                modifiers,
+                hotKeyID,
+                GetApplicationEventTarget(),
+                0,
+                &hotKeyRef
+            )
+            
+            if status != noErr {
+                print("Failed to register hotkey: \(status)")
+                return
+            }
+            
+            // 设置事件处理
+            var eventType = EventTypeSpec(
+                eventClass: OSType(kEventClassKeyboard),
+                eventKind: UInt32(kEventHotKeyPressed)
+            )
+            
+            let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+            
+            // 安装事件处理器
+            InstallEventHandler(
+                GetApplicationEventTarget(),
+                { (nextHandler, eventRef, userData) -> OSStatus in
+                    let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData!).takeUnretainedValue()
+                    return appDelegate.hotKeyHandler(nextHandler: nextHandler, event: eventRef, userData: userData)
+                },
+                1,
+                &eventType,
+                selfPtr,
+                nil
+            )
+        }
     
     @objc func togglePopover() {
         if let button = statusItem?.button {
             if let popover = popover {
                 if popover.isShown {
-                    popover.performClose(nil)
+                    closePopover()
                 } else {
-                    popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+                    showPopover(button)
                 }
             }
         }
     }
     
+    func showPopover(_ sender: NSView) {
+        if let popover = popover {
+            popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+    
+    func closePopover() {
+        popover?.performClose(nil)
+    }
+    
+    func applicationWillTerminate(_ notification: Notification) {
+        if let hotKeyRef = hotKeyRef {
+            UnregisterEventHotKey(hotKeyRef)
+        }
+    }
+    
     // 防止应用程序在没有窗口时终止
-    func applicationShouldTerminateAfterLastWindowClosed( sender: NSApplication) -> Bool {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
     }
 }
@@ -178,44 +284,110 @@ struct ContentView: View {
     @State private var inputText: String = ""
     
     var body: some View {
-        VStack(spacing: 16) {
-            // 输入区域
-            VStack(spacing: 8) {
-                TextField("输入文本生成二维码", text: $inputText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .frame(height: 24)
+        VStack(spacing: 0) {
+            // 顶部标题栏
+            HStack(spacing: 12) {
+                HStack(spacing: 4) {
+                    Image(systemName: "qrcode")
+                        .foregroundColor(.secondary)
+                    Text("二维码生成器")
+                        .font(.system(size: 13, weight: .medium))
+                }
+                
+                Spacer()
+                
+                Text("⌘⇧Space")  // 更新快捷键提示
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(4)
                 
                 Button(action: {
-                    if !inputText.isEmpty {
-                        stateManager.addQRCode(content: inputText)
-                        inputText = ""
-                    }
+                    NSApplication.shared.terminate(nil)
                 }) {
-                    Text("生成")
-                        .frame(maxWidth: .infinity)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(inputText.isEmpty)
+                .buttonStyle(.plain)
+                .help("退出应用")
             }
-            .padding([.horizontal, .top])
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(NSColor.windowBackgroundColor))
             
             Divider()
             
-            // 历史记录区域
-            ScrollView {
-                LazyVStack(spacing: 8) {
-                    ForEach(stateManager.qrCodes) { item in
-                        HistoryItemView(item: item) {
-                            stateManager.deleteQRCode(item: item)
+            // 主要内容区域
+            VStack(spacing: 16) {
+                // 输入区域
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        TextField("输入文本生成二维码", text: $inputText)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .frame(height: 28)
+                        
+                        Button(action: {
+                            if let clipboardString = NSPasteboard.general.string(forType: .string) {
+                                inputText = clipboardString
+                            }
+                        }) {
+                            Image(systemName: "doc.on.clipboard")
+                                .font(.system(size: 14))
+                                .frame(width: 28, height: 28)
                         }
-                        Divider()
+                        .buttonStyle(.borderless)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .cornerRadius(6)
+                        .disabled(NSPasteboard.general.string(forType: .string) == nil)
+                    }
+                    
+                    Button(action: {
+                        if !inputText.isEmpty {
+                            stateManager.addQRCode(content: inputText)
+                            inputText = ""
+                        }
+                    }) {
+                        Text("生成二维码")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(inputText.isEmpty)
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
+                
+                // 历史记录标题
+                HStack {
+                    Text("历史记录")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                
+                Divider()
+                
+                // 历史记录列表
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(stateManager.qrCodes) { item in
+                            HistoryItemView(item: item) {
+                                stateManager.deleteQRCode(item: item)
+                            }
+                            if item.id != stateManager.qrCodes.last?.id {
+                                Divider()
+                            }
+                        }
                     }
                 }
+                .background(Color(NSColor.controlBackgroundColor))
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 300, height: 400, alignment: .top)
-        .padding(.bottom)
+        .frame(width: 300, height: 400)
     }
 }
 

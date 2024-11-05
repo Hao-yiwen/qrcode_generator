@@ -32,7 +32,7 @@ xattr -cr /Applications/qrcode_generator.app
 
 ## 系统要求：
 
-macOS 15.0 或更高版本
+macOS 13.0 或更高版本
 
 ## 预览
 
