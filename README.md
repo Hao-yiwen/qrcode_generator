@@ -39,7 +39,7 @@ macOS 13.0 或更高版本
 
 ## 预览
 
-<img src="preview/qrcode_history.png" width="30%" style="display:inline-block;" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="preview/qrcode_detail.png" width="53%" style="display:inline-block;" />
+<img src="preview/qrcode_detail.png" width="50%" style="display:inline-block;" />
 
 ## 支持我的工作
 如果这个项目对你有帮助，可以请我喝杯咖啡 ☕️
