@@ -40,3 +40,14 @@ macOS 13.0 或更高版本
 ## 预览
 
 <img src="preview/qrcode_history.png" width="30%" style="display:inline-block;" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="preview/qrcode_detail.png" width="53%" style="display:inline-block;" />
+
+## 支持我的工作
+如果这个项目对你有帮助，可以请我喝杯咖啡 ☕️
+
+<details>
+<summary>
+  <img src="https://img.shields.io/badge/Buy_Me_A_Coffee-支付宝-blue?logo=alipay" alt="Buy Me A Coffee" style="cursor: pointer;">
+</summary>
+<br>
+<img src="preview/alipay_qr.jpg" alt="支付宝收款码" width="300">
+</details>
