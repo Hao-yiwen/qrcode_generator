@@ -312,11 +312,12 @@ struct QRCodeGeneratorView: View {
 struct ContentView: View {
     @StateObject private var stateManager = AppStateManager.shared
     @State private var inputText: String = ""
-    @State private var searchText: String = ""  // 新增搜索文本状态
+    @State private var searchText: String = ""
     @State private var showingGeneratedQR: Bool = false
     @State private var showingMenu: Bool = false
     @State private var showingQRDetail: Bool = false
     @State private var showingDonateView: Bool = false
+    @State private var currentQRImage: NSImage? = nil
     
     private var filteredHistory: [QRCodeItem] {
         if searchText.isEmpty {
@@ -374,6 +375,10 @@ struct ContentView: View {
                 
                 Button(action: {
                     if let window = NSApp.windows.first(where: { $0.isKeyWindow }) {
+                        // 清除当前状态
+                        inputText = ""
+                        showingGeneratedQR = false
+                        currentQRImage = nil
                         window.close()
                     }
                 }) {
@@ -391,7 +396,7 @@ struct ContentView: View {
             Divider()
             
             // 主要内容区域
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 16) {
                     // 输入区域
                     VStack(spacing: 8) {
@@ -405,23 +410,45 @@ struct ContentView: View {
                                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                 )
                             
-                            Button(action: {
-                                if let clipboardString = NSPasteboard.general.string(forType: .string) {
-                                    inputText = clipboardString
+                            // 按钮组垂直排列
+                            VStack(spacing: 4) {
+                                // 清除按钮
+                                Button(action: {
+                                    inputText = ""
+                                    showingGeneratedQR = false
+                                    currentQRImage = nil
+                                }) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 14))
+                                        .frame(width: 28, height: 28)
                                 }
-                            }) {
-                                Image(systemName: "doc.on.clipboard")
-                                    .font(.system(size: 14))
-                                    .frame(width: 28, height: 28)
+                                .buttonStyle(.borderless)
+                                .background(Color(NSColor.controlBackgroundColor))
+                                .cornerRadius(6)
+                                .help("清除内容")
+                                .disabled(inputText.isEmpty)
+                                
+                                // 粘贴按钮
+                                Button(action: {
+                                    if let clipboardString = NSPasteboard.general.string(forType: .string) {
+                                        inputText = clipboardString
+                                    }
+                                }) {
+                                    Image(systemName: "doc.on.clipboard")
+                                        .font(.system(size: 14))
+                                        .frame(width: 28, height: 28)
+                                }
+                                .buttonStyle(.borderless)
+                                .background(Color(NSColor.controlBackgroundColor))
+                                .cornerRadius(6)
+                                .help("从剪贴板粘贴")
+                                .disabled(NSPasteboard.general.string(forType: .string) == nil)
                             }
-                            .buttonStyle(.borderless)
-                            .background(Color(NSColor.controlBackgroundColor))
-                            .cornerRadius(6)
-                            .disabled(NSPasteboard.general.string(forType: .string) == nil)
                         }
                         
                         Button(action: {
                             if !inputText.isEmpty {
+                                currentQRImage = QRCodeGenerator.generateQRCode(from: inputText)
                                 stateManager.addQRCode(inputText)
                                 showingGeneratedQR = true
                             }
@@ -434,50 +461,46 @@ struct ContentView: View {
                         .disabled(inputText.isEmpty)
                         
                         // 显示刚生成的二维码
-                        if showingGeneratedQR && !inputText.isEmpty {
-                                VStack {
-                                    if let qrImage = QRCodeGenerator.generateQRCode(from: inputText) {
-                                        Image(nsImage: qrImage)
-                                            .resizable()
-                                            .interpolation(.none)
-                                            .frame(width: 120, height: 120)
-                                            .background(Color.white)
-                                            .cornerRadius(8)
-                                            .shadow(radius: 1)
-                                            .onTapGesture {
-                                                showingQRDetail = true
-                                            }
-                                            .popover(isPresented: $showingQRDetail, arrowEdge: .trailing) {
-                                                QRCodeDetailView(qrImage: qrImage, content: inputText)
-                                            }
+                        if showingGeneratedQR, let qrImage = currentQRImage {
+                            VStack {
+                                Image(nsImage: qrImage)
+                                    .resizable()
+                                    .interpolation(.none)
+                                    .frame(width: 120, height: 120)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                                    .shadow(radius: 1)
+                                    .onTapGesture {
+                                        showingQRDetail = true
                                     }
+                                    .popover(isPresented: $showingQRDetail, arrowEdge: .trailing) {
+                                        QRCodeDetailView(qrImage: qrImage, content: inputText)
+                                    }
+                                
+                                HStack(spacing: 16) {
+                                    Button(action: {
+                                        copyQRCodeToClipboard(qrImage)
+                                    }) {
+                                        Label("复制图片", systemImage: "doc.on.doc")
+                                            .font(.system(size: 12))
+                                    }
+                                    .buttonStyle(.plain)
                                     
-                                    HStack(spacing: 16) {
-                                        Button(action: {
-                                            if let qrImage = QRCodeGenerator.generateQRCode(from: inputText) {
-                                                copyQRCodeToClipboard(qrImage)
-                                            }
-                                        }) {
-                                            Label("复制图片", systemImage: "doc.on.doc")
-                                                .font(.system(size: 12))
-                                        }
-                                        .buttonStyle(.plain)
-                                        
-                                        Button(action: {
-                                            NSPasteboard.general.clearContents()
-                                            NSPasteboard.general.setString(inputText, forType: .string)
-                                        }) {
-                                            Label("复制文本", systemImage: "doc.text")
-                                                .font(.system(size: 12))
-                                        }
-                                        .buttonStyle(.plain)
+                                    Button(action: {
+                                        NSPasteboard.general.clearContents()
+                                        NSPasteboard.general.setString(inputText, forType: .string)
+                                    }) {
+                                        Label("复制文本", systemImage: "doc.text")
+                                            .font(.system(size: 12))
                                     }
-                                    .padding(.top, 8)
+                                    .buttonStyle(.plain)
                                 }
-                                .padding()
-                                .background(Color(NSColor.controlBackgroundColor))
-                                .cornerRadius(8)
+                                .padding(.top, 8)
                             }
+                            .padding()
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .cornerRadius(8)
+                        }
                     }
                     .padding(.horizontal, 12)
                     .padding(.top, 12)
@@ -545,6 +568,9 @@ struct ContentView: View {
                    .background(Color(NSColor.controlBackgroundColor))
                }
             }
+            .scrollContentBackground(.hidden)  // 添加这个
+            .frame(maxWidth: .infinity, maxHeight: .infinity)  // 添加这个
+            .scrollDisabled(false)  // 确保可以滚动
             
             Divider()
             
@@ -592,6 +618,12 @@ struct ContentView: View {
             .background(Color(NSColor.windowBackgroundColor))
         }
         .frame(width: 500, height: 600)
+        .onAppear {
+            // 确保每次视图出现时重置状态
+            inputText = ""
+            showingGeneratedQR = false
+            currentQRImage = nil
+        }
     }
 }
 
@@ -605,7 +637,7 @@ struct HistoryItemView: View {
             // 内容部分
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.content)
-                    .lineLimit(3)
+                    .lineLimit(2)
                     .font(.system(.body))
                 
                 Text(formatDate(item.timestamp))
