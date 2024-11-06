@@ -22,6 +22,27 @@ struct QRCodeItem: Identifiable, Codable, Hashable {
         self.content = content
         self.timestamp = Date()
     }
+    
+    // 添加编码键
+    private enum CodingKeys: String, CodingKey {
+        case id, content, timestamp
+    }
+    
+    // 自定义编码方法
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(content, forKey: .content)
+        try container.encode(timestamp, forKey: .timestamp)
+    }
+    
+    // 自定义解码方法
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        content = try container.decode(String.self, forKey: .content)
+        timestamp = try container.decode(Date.self, forKey: .timestamp)
+    }
 }
 
 // 主应用程序
@@ -30,15 +51,15 @@ struct qrcode_generatorApp: App {
     var body: some Scene {
         MenuBarExtra("QR Code Generator", systemImage: "qrcode") {
             ContentView()
-                .frame(width: 300, height: 400)
+                .frame(width: 500, height: 600)
         }
-        .menuBarExtraStyle(.window) // 设置样式为窗口模式
+        .menuBarExtraStyle(.window)
     }
 }
 
 struct QRCodeGenerator {
     static func generateQRCode(from string: String) -> NSImage? {
-        let context = CIContext(options: [CIContextOption.useSoftwareRenderer: true])
+        let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
         
         guard let data = string.data(using: .utf8) else { return nil }
@@ -63,29 +84,38 @@ class AppStateManager: ObservableObject {
     }
     
     func loadQRCodes() {
-        if let data = UserDefaults.standard.data(forKey: "qrcodes"),
-           let decoded = try? JSONDecoder().decode([QRCodeItem].self, from: data) {
-            DispatchQueue.main.async {
-                self.qrCodes = decoded
+        if let data = UserDefaults.standard.data(forKey: "qrcodes") {
+            do {
+                let decoder = JSONDecoder()
+                let decoded = try decoder.decode([QRCodeItem].self, from: data)
+                DispatchQueue.main.async {
+                    self.qrCodes = decoded
+                }
+            } catch {
+                print("Failed to decode QR codes: \(error)")
             }
         }
     }
     
     func saveQRCodes() {
-        if let encoded = try? JSONEncoder().encode(qrCodes) {
+        do {
+            let encoder = JSONEncoder()
+            let encoded = try encoder.encode(qrCodes)
             UserDefaults.standard.set(encoded, forKey: "qrcodes")
+        } catch {
+            print("Failed to encode QR codes: \(error)")
         }
     }
     
-    func addQRCode( content: String) {
+    func addQRCode(_ content: String) {
+        let newItem = QRCodeItem(content: content)
         DispatchQueue.main.async {
-            let newItem = QRCodeItem(content: content)
             self.qrCodes.insert(newItem, at: 0)
             self.saveQRCodes()
         }
     }
     
-    func deleteQRCode( item: QRCodeItem) {
+    func deleteQRCode(_ item: QRCodeItem) {
         DispatchQueue.main.async {
             self.qrCodes.removeAll { $0.id == item.id }
             self.saveQRCodes()
@@ -282,6 +312,44 @@ struct QRCodeGeneratorView: View {
 struct ContentView: View {
     @StateObject private var stateManager = AppStateManager.shared
     @State private var inputText: String = ""
+    @State private var searchText: String = ""  // 新增搜索文本状态
+    @State private var showingGeneratedQR: Bool = false
+    @State private var showingMenu: Bool = false
+    @State private var showingQRDetail: Bool = false
+    @State private var showingDonateView: Bool = false
+    
+    private var filteredHistory: [QRCodeItem] {
+        if searchText.isEmpty {
+            return stateManager.qrCodes
+        } else {
+            return stateManager.qrCodes.filter {
+                $0.content.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+    
+    func showDetailView(qrImage: NSImage, content: String) {
+        let detailView = QRCodeDetailView(qrImage: qrImage, content: content)
+        let controller = NSHostingController(rootView: detailView)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 350),
+            styleMask: [.titled, .fullSizeContentView], // 移除关闭按钮，只保留标题栏
+            backing: .buffered,
+            defer: false
+        )
+        window.isMovableByWindowBackground = true // 允许通过背景拖动窗口
+        window.titlebarAppearsTransparent = true // 标题栏透明
+        window.titleVisibility = .hidden // 隐藏标题
+        window.contentViewController = controller
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+    }
+    
+    private func copyQRCodeToClipboard(_ image: NSImage) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.writeObjects([image])
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -296,7 +364,7 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                Text("⌘⇧Space")  // 更新快捷键提示
+                Text("⌘⌃Q")  // 修改为正确的快捷键
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 4)
@@ -305,14 +373,16 @@ struct ContentView: View {
                     .cornerRadius(4)
                 
                 Button(action: {
-                    NSApplication.shared.terminate(nil)
+                    if let window = NSApp.windows.first(where: { $0.isKeyWindow }) {
+                        window.close()
+                    }
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("退出应用")
+                .help("关闭窗口")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -321,81 +391,213 @@ struct ContentView: View {
             Divider()
             
             // 主要内容区域
-            VStack(spacing: 16) {
-                // 输入区域
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        TextField("输入文本生成二维码", text: $inputText)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .frame(height: 28)
+            ScrollView {
+                VStack(spacing: 16) {
+                    // 输入区域
+                    VStack(spacing: 8) {
+                        HStack(spacing: 8) {
+                            TextEditor(text: $inputText)
+                                .frame(height: 80)
+                                .font(.system(.body))
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                )
+                            
+                            Button(action: {
+                                if let clipboardString = NSPasteboard.general.string(forType: .string) {
+                                    inputText = clipboardString
+                                }
+                            }) {
+                                Image(systemName: "doc.on.clipboard")
+                                    .font(.system(size: 14))
+                                    .frame(width: 28, height: 28)
+                            }
+                            .buttonStyle(.borderless)
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .cornerRadius(6)
+                            .disabled(NSPasteboard.general.string(forType: .string) == nil)
+                        }
                         
                         Button(action: {
-                            if let clipboardString = NSPasteboard.general.string(forType: .string) {
-                                inputText = clipboardString
+                            if !inputText.isEmpty {
+                                stateManager.addQRCode(inputText)
+                                showingGeneratedQR = true
                             }
                         }) {
-                            Image(systemName: "doc.on.clipboard")
-                                .font(.system(size: 14))
-                                .frame(width: 28, height: 28)
+                            Text("生成二维码")
+                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderless)
-                        .background(Color(NSColor.controlBackgroundColor))
-                        .cornerRadius(6)
-                        .disabled(NSPasteboard.general.string(forType: .string) == nil)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(inputText.isEmpty)
+                        
+                        // 显示刚生成的二维码
+                        if showingGeneratedQR && !inputText.isEmpty {
+                                VStack {
+                                    if let qrImage = QRCodeGenerator.generateQRCode(from: inputText) {
+                                        Image(nsImage: qrImage)
+                                            .resizable()
+                                            .interpolation(.none)
+                                            .frame(width: 120, height: 120)
+                                            .background(Color.white)
+                                            .cornerRadius(8)
+                                            .shadow(radius: 1)
+                                            .onTapGesture {
+                                                showingQRDetail = true
+                                            }
+                                            .popover(isPresented: $showingQRDetail, arrowEdge: .trailing) {
+                                                QRCodeDetailView(qrImage: qrImage, content: inputText)
+                                            }
+                                    }
+                                    
+                                    HStack(spacing: 16) {
+                                        Button(action: {
+                                            if let qrImage = QRCodeGenerator.generateQRCode(from: inputText) {
+                                                copyQRCodeToClipboard(qrImage)
+                                            }
+                                        }) {
+                                            Label("复制图片", systemImage: "doc.on.doc")
+                                                .font(.system(size: 12))
+                                        }
+                                        .buttonStyle(.plain)
+                                        
+                                        Button(action: {
+                                            NSPasteboard.general.clearContents()
+                                            NSPasteboard.general.setString(inputText, forType: .string)
+                                        }) {
+                                            Label("复制文本", systemImage: "doc.text")
+                                                .font(.system(size: 12))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .padding(.top, 8)
+                                }
+                                .padding()
+                                .background(Color(NSColor.controlBackgroundColor))
+                                .cornerRadius(8)
+                            }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
+                    
+                    // 历史记录标题
+                    HStack {
+                        Text("历史记录")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        Spacer()
                     }
                     
-                    Button(action: {
-                        if !inputText.isEmpty {
-                            stateManager.addQRCode(content: inputText)
-                            inputText = ""
+                    // 搜索框
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 12))
+                        
+                        TextField("搜索历史记录", text: $searchText)
+                            .font(.system(size: 12))
+                            .textFieldStyle(PlainTextFieldStyle())
+                        
+                        if !searchText.isEmpty {
+                            Button(action: {
+                                searchText = ""
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 12))
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                    }) {
-                        Text("生成二维码")
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(inputText.isEmpty)
-                }
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                
-                // 历史记录标题
-                HStack {
-                    Text("历史记录")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                    Spacer()
+                    .padding(6)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(6)
                 }
                 .padding(.horizontal, 12)
                 
                 Divider()
                 
                 // 历史记录列表
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(stateManager.qrCodes) { item in
-                            HistoryItemView(item: item) {
-                                stateManager.deleteQRCode(item: item)
-                            }
-                            if item.id != stateManager.qrCodes.last?.id {
-                                Divider()
-                            }
-                        }
-                    }
-                }
-                .background(Color(NSColor.controlBackgroundColor))
+               if filteredHistory.isEmpty {
+                   VStack(spacing: 8) {
+                       Image(systemName: "doc.text.magnifyingglass")
+                           .font(.system(size: 24))
+                           .foregroundColor(.secondary)
+                       Text(searchText.isEmpty ? "暂无历史记录" : "没有找到匹配的记录")
+                           .font(.system(size: 13))
+                           .foregroundColor(.secondary)
+                   }
+                   .frame(maxWidth: .infinity, minHeight: 100)
+                   .background(Color(NSColor.controlBackgroundColor))
+               } else {
+                   LazyVStack(spacing: 0) {
+                       ForEach(filteredHistory) { item in
+                           HistoryItemView(item: item) {
+                               stateManager.deleteQRCode(item)
+                           }
+                           if item.id != filteredHistory.last?.id {
+                               Divider()
+                           }
+                       }
+                   }
+                   .background(Color(NSColor.controlBackgroundColor))
+               }
             }
+            
+            Divider()
+            
+            // 底部菜单
+            HStack {
+                Spacer()
+                Button(action: { showingMenu.toggle() }) {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 16))
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showingMenu, arrowEdge: .bottom) {
+                    VStack(spacing: 8) {
+                        Button(action: {
+                            showingDonateView = true
+                            showingMenu = false  // 关闭菜单
+                        }) {
+                            Label("请我喝咖啡", systemImage: "cup.and.saucer.fill")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        
+                        Divider()
+                        
+                        Button(action: {
+                            NSApplication.shared.terminate(nil)
+                        }) {
+                            Label("退出应用", systemImage: "power")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                    }
+                    .padding(4)
+                    .frame(width: 200)
+                }
+                .popover(isPresented: $showingDonateView, arrowEdge: .bottom) {
+                    DonateView()
+                }
+                .padding(8)
+            }
+            .background(Color(NSColor.windowBackgroundColor))
         }
-        .frame(width: 300, height: 400)
+        .frame(width: 500, height: 600)
     }
 }
 
 struct HistoryItemView: View {
     let item: QRCodeItem
     let onDelete: () -> Void
-    
-    // 使用 showPopover 替代 showDetail
     @State private var showPopover: Bool = false
     
     var body: some View {
@@ -403,9 +605,10 @@ struct HistoryItemView: View {
             // 内容部分
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.content)
-                    .lineLimit(1)
+                    .lineLimit(3)
                     .font(.system(.body))
-                Text(item.timestamp, style: .date)
+                
+                Text(formatDate(item.timestamp))
                     .font(.caption)
                     .foregroundColor(.gray)
             }
@@ -420,7 +623,6 @@ struct HistoryItemView: View {
                     .frame(width: 50, height: 50)
                     .background(Color.white)
                     .cornerRadius(4)
-                    // 使用 popover 而不是 sheet
                     .popover(isPresented: $showPopover, arrowEdge: .trailing) {
                         QRCodeDetailView(qrImage: qrImage, content: item.content)
                     }
@@ -442,6 +644,12 @@ struct HistoryItemView: View {
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(8)
     }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter.string(from: date)
+    }
 }
 
 struct QRCodeDetailView: View {
@@ -462,18 +670,22 @@ struct QRCodeDetailView: View {
                 .cornerRadius(8)
                 .shadow(radius: 2)
             
-            Text(content)
-                .font(.subheadline)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+            ScrollView {
+                Text(content)
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(nil)
+                    .padding(.horizontal)
+            }
+            .frame(height: 60)
             
-            // 添加复制按钮
             HStack(spacing: 12) {
                 Button(action: {
                     copyQRCodeToClipboard(qrImage)
                 }) {
                     Label("复制图片", systemImage: "doc.on.doc")
                 }
+                .buttonStyle(.borderless)
                 
                 Button(action: {
                     NSPasteboard.general.clearContents()
@@ -481,16 +693,40 @@ struct QRCodeDetailView: View {
                 }) {
                     Label("复制文本", systemImage: "doc.text")
                 }
+                .buttonStyle(.borderless)
             }
         }
         .padding()
         .frame(width: 300, height: 350)
     }
     
-    // 复制图片到剪贴板
     private func copyQRCodeToClipboard(_ image: NSImage) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.writeObjects([image])
+    }
+}
+
+struct DonateView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("感谢您的支持！")
+                .font(.headline)
+            
+            Image("alipay-qr")  // 将您的支付宝收款码图片添加到项目的 Assets.xcassets 中
+                .resizable()
+                .interpolation(.none)
+                .scaledToFit()
+                .frame(width: 200, height: 300)
+                .background(Color.white)
+                .cornerRadius(8)
+                .shadow(radius: 2)
+            
+            Text("扫描上方二维码向我打赏")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .frame(width: 300, height: 400)
     }
 }
