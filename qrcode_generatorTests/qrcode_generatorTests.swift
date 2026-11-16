@@ -10,8 +10,51 @@ import Testing
 
 struct qrcode_generatorTests {
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    @Test func qrCodeItemCodableRoundTrip() throws {
+        let item = QRCodeItem(content: "https://example.com")
+        let data = try JSONEncoder().encode([item])
+        let decoded = try JSONDecoder().decode([QRCodeItem].self, from: data)
+
+        #expect(decoded.count == 1)
+        #expect(decoded[0].id == item.id)
+        #expect(decoded[0].content == item.content)
+        #expect(abs(decoded[0].timestamp.timeIntervalSince(item.timestamp)) < 0.001)
+    }
+
+    @Test func qrCodeGeneratorCreatesImageOnSupportedPlatform() {
+        #if os(macOS)
+        let image = QRCodeGenerator.generateQRCode(from: "https://example.com")
+        #expect(image != nil)
+        #expect(image?.size.width ?? 0 > 0)
+        #else
+        #expect(Bool(true))
+        #endif
+    }
+
+    @Test @MainActor func appStateManagerPersistsNewItem() {
+        let manager = AppStateManager.shared
+        let defaults = UserDefaults.standard
+        let snapshot = defaults.data(forKey: "qrcodes")
+        let marker = "unit-test-\(UUID().uuidString)"
+        let initialCount = manager.qrCodes.count
+
+        defer {
+            if let snapshot {
+                defaults.set(snapshot, forKey: "qrcodes")
+            } else {
+                defaults.removeObject(forKey: "qrcodes")
+            }
+            manager.loadQRCodes()
+        }
+
+        manager.addQRCode(marker)
+        #expect(manager.qrCodes.count == initialCount + 1)
+        #expect(manager.qrCodes.first?.content == marker)
+
+        if let created = manager.qrCodes.first(where: { $0.content == marker }) {
+            manager.deleteQRCode(created)
+        }
+        #expect(manager.qrCodes.contains { $0.content == marker } == false)
     }
 
 }
