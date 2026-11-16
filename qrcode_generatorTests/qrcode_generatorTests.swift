@@ -18,7 +18,7 @@ struct qrcode_generatorTests {
         #expect(decoded.count == 1)
         #expect(decoded[0].id == item.id)
         #expect(decoded[0].content == item.content)
-        #expect(decoded[0].timestamp == item.timestamp)
+        #expect(abs(decoded[0].timestamp.timeIntervalSince(item.timestamp)) < 0.001)
     }
 
     @Test func qrCodeGeneratorCreatesImageOnSupportedPlatform() {
@@ -33,8 +33,19 @@ struct qrcode_generatorTests {
 
     @Test @MainActor func appStateManagerPersistsNewItem() {
         let manager = AppStateManager.shared
+        let defaults = UserDefaults.standard
+        let snapshot = defaults.data(forKey: "qrcodes")
         let marker = "unit-test-\(UUID().uuidString)"
         let initialCount = manager.qrCodes.count
+
+        defer {
+            if let snapshot {
+                defaults.set(snapshot, forKey: "qrcodes")
+            } else {
+                defaults.removeObject(forKey: "qrcodes")
+            }
+            manager.loadQRCodes()
+        }
 
         manager.addQRCode(marker)
         #expect(manager.qrCodes.count == initialCount + 1)

@@ -50,7 +50,7 @@
 2. 选择 Scheme：`qrcode_generator`，目标选「My Mac」
 3. 如需签名运行：在 Signing & Capabilities 中选择你自己的 Development Team（仓库默认 Team ID 可能无法直接使用）
 4. 按 `⌘R` 运行；应用为菜单栏（`LSUIElement`）应用，停靠栏通常不显示图标，请在菜单栏查找二维码图标
-5. 全局快捷键 **⌘⌃Q**：通过 `@NSApplicationDelegateAdaptor` 挂载的 `AppDelegate` 注册 Carbon 热键，并与 `MenuBarExtra` 窗口联动显示/隐藏
+5. 全局快捷键 **⌘⌃Q**：由 `@NSApplicationDelegateAdaptor` 挂载的 `AppDelegate` 注册。按下后优先点击菜单栏按钮（与 SwiftUI 开关状态一致）；找不到状态项时，再显示/隐藏已登记的菜单栏窗口
 6. 运行测试：`⌘U`，或 Product → Test
 
 命令行（仅在 Mac 上）：

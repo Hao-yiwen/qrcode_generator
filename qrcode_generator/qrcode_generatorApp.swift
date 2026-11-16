@@ -21,6 +21,7 @@ private enum AppColors {
 @MainActor
 final class MenuBarExtraCoordinator {
     static let shared = MenuBarExtraCoordinator()
+    static let windowIdentifier = NSUserInterfaceItemIdentifier("qrcode.menuBarExtra")
 
     weak var menuBarWindow: NSWindow?
 
@@ -28,60 +29,69 @@ final class MenuBarExtraCoordinator {
 
     func registerWindow(_ window: NSWindow?) {
         guard let window else { return }
+        window.identifier = Self.windowIdentifier
         menuBarWindow = window
     }
 
+    /// 优先走状态栏按钮点击，让 SwiftUI 自己维护开关状态。
+    /// 只有找不到 status item 时，才按已登记窗口显隐。
     func togglePanel() {
-        NSApp.activate(ignoringOtherApps: true)
-
-        if let window = resolvedMenuBarWindow() {
-            if window.isVisible {
-                window.orderOut(nil)
-            } else {
-                window.makeKeyAndOrderFront(nil)
-            }
+        activateApp()
+        if clickMenuBarStatusItem() {
             return
         }
 
-        triggerStatusItemClick()
+        guard let window = resolvedMenuBarWindow() else { return }
+        if window.isVisible {
+            window.orderOut(nil)
+        } else {
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    private func activateApp() {
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     private func resolvedMenuBarWindow() -> NSWindow? {
         if let menuBarWindow {
             return menuBarWindow
         }
-
-        return NSApp.windows.first { window in
-            let size = window.frame.size
-            return abs(size.width - 500) < 4 && abs(size.height - 600) < 4
-        }
+        return NSApp.windows.first { $0.identifier == Self.windowIdentifier }
     }
 
-    /// MenuBarExtra 未创建窗口时的后备方案：触发状态栏按钮点击。
-    private func triggerStatusItemClick() {
-        for window in NSApp.windows {
-            if let statusItem = window.value(forKey: "statusItem") as? NSStatusItem {
-                statusItem.button?.performClick(nil)
-                return
-            }
+    /// 仅查询实现了 `statusItem` 的窗口，避免对其余窗口 KVC 抛出未定义键异常。
+    private func clickMenuBarStatusItem() -> Bool {
+        let selector = NSSelectorFromString("statusItem")
+        for window in NSApp.windows where window.responds(to: selector) {
+            guard let statusItem = window.value(forKey: "statusItem") as? NSStatusItem else { continue }
+            statusItem.button?.performClick(nil)
+            return true
+        }
+        return false
+    }
+}
+
+private final class MenuBarWindowProbeView: NSView {
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        let window = self.window
+        Task { @MainActor in
+            MenuBarExtraCoordinator.shared.registerWindow(window)
         }
     }
 }
 
 private struct MenuBarWindowAccessor: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        DispatchQueue.main.async {
-            MenuBarExtraCoordinator.shared.registerWindow(view.window)
-        }
-        return view
+        MenuBarWindowProbeView(frame: .zero)
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async {
-            MenuBarExtraCoordinator.shared.registerWindow(nsView.window)
-        }
-    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 // QR Code 数据模型
@@ -193,6 +203,7 @@ final class AppStateManager: ObservableObject {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKeyRef: EventHotKeyRef?
+    private var eventHandlerRef: EventHandlerRef?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupGlobalHotkey()
@@ -215,7 +226,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard status == noErr else { return noErr }
 
         DispatchQueue.main.async {
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 MenuBarExtraCoordinator.shared.togglePanel()
             }
         }
@@ -260,13 +271,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             1,
             &eventType,
             selfPtr,
-            nil
+            &eventHandlerRef
         )
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         if let hotKeyRef {
             UnregisterEventHotKey(hotKeyRef)
+        }
+        if let eventHandlerRef {
+            RemoveEventHandler(eventHandlerRef)
         }
     }
 
@@ -354,7 +368,7 @@ struct ContentView: View {
             Divider()
             
             // 主要内容区域
-            ScrollView(.vertical, showsIndicators: false) {
+            ScrollView(.vertical) {
                 VStack(spacing: 16) {
                     // 输入区域
                     VStack(spacing: 8) {
@@ -362,7 +376,8 @@ struct ContentView: View {
                             TextEditor(text: $inputText)
                                 .frame(height: 80)
                                 .font(.system(.body))
-                                .cornerRadius(6)
+                                .scrollContentBackground(.hidden)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
                                         .stroke(AppColors.subtleBorder, lineWidth: 1)
@@ -382,7 +397,7 @@ struct ContentView: View {
                                 }
                                 .buttonStyle(.borderless)
                                 .background(AppColors.controlBackground)
-                                .cornerRadius(6)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
                                 .help("清除内容")
                                 .disabled(inputText.isEmpty)
                                 
@@ -398,7 +413,7 @@ struct ContentView: View {
                                 }
                                 .buttonStyle(.borderless)
                                 .background(AppColors.controlBackground)
-                                .cornerRadius(6)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
                                 .help("从剪贴板粘贴")
                                 .disabled(NSPasteboard.general.string(forType: .string) == nil)
                             }
@@ -426,7 +441,7 @@ struct ContentView: View {
                                     .interpolation(.none)
                                     .frame(width: 120, height: 120)
                                     .background(AppColors.qrCodeSurface)
-                                    .cornerRadius(8)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
                                     .shadow(radius: 1)
                                     .onTapGesture {
                                         showingQRDetail = true
@@ -457,7 +472,7 @@ struct ContentView: View {
                             }
                             .padding()
                             .background(AppColors.controlBackground)
-                            .cornerRadius(8)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                     }
                     .padding(.horizontal, 12)
@@ -494,7 +509,7 @@ struct ContentView: View {
                     }
                     .padding(6)
                     .background(AppColors.controlBackground)
-                    .cornerRadius(6)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
                 .padding(.horizontal, 12)
                 
@@ -526,7 +541,8 @@ struct ContentView: View {
                    .background(AppColors.controlBackground)
                }
             }
-            .scrollContentBackground(.hidden)  // 添加这个
+            .scrollIndicators(.hidden)
+            .scrollContentBackground(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity)  // 添加这个
             .scrollDisabled(false)  // 确保可以滚动
             
@@ -612,7 +628,7 @@ struct HistoryItemView: View {
                     .interpolation(.none)
                     .frame(width: 50, height: 50)
                     .background(AppColors.qrCodeSurface)
-                    .cornerRadius(4)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
                     .popover(isPresented: $showPopover, arrowEdge: .trailing) {
                         QRCodeDetailView(qrImage: qrImage, content: item.content)
                     }
@@ -632,7 +648,7 @@ struct HistoryItemView: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(AppColors.controlBackground)
-        .cornerRadius(8)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
     
     private func formatDate(_ date: Date) -> String {
@@ -657,7 +673,7 @@ struct QRCodeDetailView: View {
                 .scaledToFit()
                 .frame(width: 200, height: 200)
                 .background(AppColors.qrCodeSurface)
-                .cornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .shadow(radius: 2)
             
             ScrollView {
@@ -709,7 +725,7 @@ struct DonateView: View {
                 .scaledToFit()
                 .frame(width: 200, height: 300)
                 .background(AppColors.qrCodeSurface)
-                .cornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .shadow(radius: 2)
             
             Text("扫描上方二维码向我打赏")

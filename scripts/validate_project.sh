@@ -31,10 +31,13 @@ src = Path("qrcode_generator/qrcode_generatorApp.swift").read_text()
 required = {
     "@NSApplicationDelegateAdaptor(AppDelegate.self)": True,
     "MenuBarExtraCoordinator": True,
-    "MenuBarWindowAccessor": True,
+    "viewDidMoveToWindow": True,
+    "responds(to: selector)": True,
+    "NSApp.activate()": True,
     "filter.message = Data(string.utf8)": True,
     "menuBarExtraStyle(.window)": True,
     "@MainActor\nfinal class AppStateManager": True,
+    "RemoveEventHandler": True,
 }
 for token, _ in required.items():
     if token not in src:
@@ -49,6 +52,8 @@ forbidden = [
     "setupStatusItem()",
     "setupPopover()",
     "SWIFT_VERSION = 5.10",
+    "showsIndicators:",
+    ".cornerRadius(",
 ]
 for token in forbidden:
     if token in src or token in pbx:
