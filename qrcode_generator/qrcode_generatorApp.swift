@@ -7,7 +7,6 @@
 
 import SwiftUI
 import CoreImage.CIFilterBuiltins
-import UserNotifications
 import AppKit
 import Carbon.HIToolbox // 用于处理快捷键
 
@@ -49,6 +48,7 @@ struct QRCodeItem: Identifiable, Codable, Hashable {
 @main
 struct qrcode_generatorApp: App {
     var body: some Scene {
+        // MenuBarExtra / .window 均自 macOS 13.0 可用，与当前 deployment target 一致
         MenuBarExtra("QR Code Generator", systemImage: "qrcode") {
             ContentView()
                 .frame(width: 500, height: 600)
@@ -61,9 +61,7 @@ struct QRCodeGenerator {
     static func generateQRCode(from string: String) -> NSImage? {
         let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
-        
-        guard let data = string.data(using: .utf8) else { return nil }
-        filter.setValue(data, forKey: "inputMessage")
+        filter.message = Data(string.utf8)
         
         guard let outputImage = filter.outputImage else { return nil }
         let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
@@ -289,9 +287,7 @@ struct QRCodeGeneratorView: View {
     private func generateQRCode(from string: String) -> NSImage? {
         let context = CIContext(options: [CIContextOption.useSoftwareRenderer: true])
         let filter = CIFilter.qrCodeGenerator()
-        
-        guard let data = string.data(using: .utf8) else { return nil }
-        filter.setValue(data, forKey: "inputMessage")
+        filter.message = Data(string.utf8)
         
         guard let outputImage = filter.outputImage else { return nil }
         let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
@@ -358,7 +354,7 @@ struct ContentView: View {
             HStack(spacing: 12) {
                 HStack(spacing: 4) {
                     Image(systemName: "qrcode")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     Text("二维码生成器")
                         .font(.system(size: 13, weight: .medium))
                 }
@@ -367,7 +363,7 @@ struct ContentView: View {
                 
                 Text("⌘⌃Q")  // 修改为正确的快捷键
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
                     .background(Color(NSColor.controlBackgroundColor))
@@ -384,7 +380,7 @@ struct ContentView: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
                 .help("关闭窗口")
@@ -509,14 +505,14 @@ struct ContentView: View {
                     HStack {
                         Text("历史记录")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Spacer()
                     }
                     
                     // 搜索框
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .font(.system(size: 12))
                         
                         TextField("搜索历史记录", text: $searchText)
@@ -528,7 +524,7 @@ struct ContentView: View {
                                 searchText = ""
                             }) {
                                 Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                     .font(.system(size: 12))
                             }
                             .buttonStyle(PlainButtonStyle())
@@ -547,10 +543,10 @@ struct ContentView: View {
                    VStack(spacing: 8) {
                        Image(systemName: "doc.text.magnifyingglass")
                            .font(.system(size: 24))
-                           .foregroundColor(.secondary)
+                           .foregroundStyle(.secondary)
                        Text(searchText.isEmpty ? "暂无历史记录" : "没有找到匹配的记录")
                            .font(.system(size: 13))
-                           .foregroundColor(.secondary)
+                           .foregroundStyle(.secondary)
                    }
                    .frame(maxWidth: .infinity, minHeight: 100)
                    .background(Color(NSColor.controlBackgroundColor))
@@ -642,7 +638,7 @@ struct HistoryItemView: View {
                 
                 Text(formatDate(item.timestamp))
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundStyle(.gray)
             }
             
             Spacer()
@@ -666,7 +662,7 @@ struct HistoryItemView: View {
             // 删除按钮
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
                     .frame(width: 20, height: 20)
             }
             .buttonStyle(.borderless)
@@ -756,7 +752,7 @@ struct DonateView: View {
             
             Text("扫描上方二维码向我打赏")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .padding()
         .frame(width: 300, height: 400)

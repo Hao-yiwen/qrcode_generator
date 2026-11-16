@@ -10,8 +10,15 @@ import Testing
 
 struct qrcode_generatorTests {
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    @Test func qrCodeItemCodableRoundTrip() throws {
+        let item = QRCodeItem(content: "https://example.com")
+        let data = try JSONEncoder().encode([item])
+        let decoded = try JSONDecoder().decode([QRCodeItem].self, from: data)
+
+        #expect(decoded.count == 1)
+        #expect(decoded[0].id == item.id)
+        #expect(decoded[0].content == item.content)
+        #expect(decoded[0].timestamp == item.timestamp)
     }
 
 }
