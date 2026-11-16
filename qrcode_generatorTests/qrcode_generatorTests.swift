@@ -21,4 +21,29 @@ struct qrcode_generatorTests {
         #expect(decoded[0].timestamp == item.timestamp)
     }
 
+    @Test func qrCodeGeneratorCreatesImageOnSupportedPlatform() {
+        #if os(macOS)
+        let image = QRCodeGenerator.generateQRCode(from: "https://example.com")
+        #expect(image != nil)
+        #expect(image?.size.width ?? 0 > 0)
+        #else
+        #expect(Bool(true))
+        #endif
+    }
+
+    @Test @MainActor func appStateManagerPersistsNewItem() {
+        let manager = AppStateManager.shared
+        let marker = "unit-test-\(UUID().uuidString)"
+        let initialCount = manager.qrCodes.count
+
+        manager.addQRCode(marker)
+        #expect(manager.qrCodes.count == initialCount + 1)
+        #expect(manager.qrCodes.first?.content == marker)
+
+        if let created = manager.qrCodes.first(where: { $0.content == marker }) {
+            manager.deleteQRCode(created)
+        }
+        #expect(manager.qrCodes.contains { $0.content == marker } == false)
+    }
+
 }

@@ -10,6 +10,80 @@ import CoreImage.CIFilterBuiltins
 import AppKit
 import Carbon.HIToolbox // 用于处理快捷键
 
+private enum AppColors {
+    /// 二维码图案区域需保持高对比白底，便于扫描识别。
+    static let qrCodeSurface = Color.white
+    static let chromeBackground = Color(nsColor: .windowBackgroundColor)
+    static let controlBackground = Color(nsColor: .controlBackgroundColor)
+    static let subtleBorder = Color.primary.opacity(0.12)
+}
+
+@MainActor
+final class MenuBarExtraCoordinator {
+    static let shared = MenuBarExtraCoordinator()
+
+    weak var menuBarWindow: NSWindow?
+
+    private init() {}
+
+    func registerWindow(_ window: NSWindow?) {
+        guard let window else { return }
+        menuBarWindow = window
+    }
+
+    func togglePanel() {
+        NSApp.activate(ignoringOtherApps: true)
+
+        if let window = resolvedMenuBarWindow() {
+            if window.isVisible {
+                window.orderOut(nil)
+            } else {
+                window.makeKeyAndOrderFront(nil)
+            }
+            return
+        }
+
+        triggerStatusItemClick()
+    }
+
+    private func resolvedMenuBarWindow() -> NSWindow? {
+        if let menuBarWindow {
+            return menuBarWindow
+        }
+
+        return NSApp.windows.first { window in
+            let size = window.frame.size
+            return abs(size.width - 500) < 4 && abs(size.height - 600) < 4
+        }
+    }
+
+    /// MenuBarExtra 未创建窗口时的后备方案：触发状态栏按钮点击。
+    private func triggerStatusItemClick() {
+        for window in NSApp.windows {
+            if let statusItem = window.value(forKey: "statusItem") as? NSStatusItem {
+                statusItem.button?.performClick(nil)
+                return
+            }
+        }
+    }
+}
+
+private struct MenuBarWindowAccessor: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async {
+            MenuBarExtraCoordinator.shared.registerWindow(view.window)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            MenuBarExtraCoordinator.shared.registerWindow(nsView.window)
+        }
+    }
+}
+
 // QR Code 数据模型
 struct QRCodeItem: Identifiable, Codable, Hashable {
     let id: UUID
@@ -47,11 +121,14 @@ struct QRCodeItem: Identifiable, Codable, Hashable {
 // 主应用程序
 @main
 struct qrcode_generatorApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     var body: some Scene {
         // MenuBarExtra / .window 均自 macOS 13.0 可用，与当前 deployment target 一致
         MenuBarExtra("QR Code Generator", systemImage: "qrcode") {
             ContentView()
                 .frame(width: 500, height: 600)
+                .background(MenuBarWindowAccessor())
         }
         .menuBarExtraStyle(.window)
     }
@@ -72,228 +149,129 @@ struct QRCodeGenerator {
 }
 
 // 状态管理器
-class AppStateManager: ObservableObject {
+@MainActor
+final class AppStateManager: ObservableObject {
     static let shared = AppStateManager()
-    
+
     @Published var qrCodes: [QRCodeItem] = []
-    
+
     private init() {
         loadQRCodes()
     }
-    
+
     func loadQRCodes() {
-        if let data = UserDefaults.standard.data(forKey: "qrcodes") {
-            do {
-                let decoder = JSONDecoder()
-                let decoded = try decoder.decode([QRCodeItem].self, from: data)
-                DispatchQueue.main.async {
-                    self.qrCodes = decoded
-                }
-            } catch {
-                print("Failed to decode QR codes: \(error)")
-            }
+        guard let data = UserDefaults.standard.data(forKey: "qrcodes") else { return }
+
+        do {
+            let decoded = try JSONDecoder().decode([QRCodeItem].self, from: data)
+            qrCodes = decoded
+        } catch {
+            print("Failed to decode QR codes: \(error)")
         }
     }
-    
+
     func saveQRCodes() {
         do {
-            let encoder = JSONEncoder()
-            let encoded = try encoder.encode(qrCodes)
+            let encoded = try JSONEncoder().encode(qrCodes)
             UserDefaults.standard.set(encoded, forKey: "qrcodes")
         } catch {
             print("Failed to encode QR codes: \(error)")
         }
     }
-    
+
     func addQRCode(_ content: String) {
         let newItem = QRCodeItem(content: content)
-        DispatchQueue.main.async {
-            self.qrCodes.insert(newItem, at: 0)
-            self.saveQRCodes()
-        }
+        qrCodes.insert(newItem, at: 0)
+        saveQRCodes()
     }
-    
+
     func deleteQRCode(_ item: QRCodeItem) {
-        DispatchQueue.main.async {
-            self.qrCodes.removeAll { $0.id == item.id }
-            self.saveQRCodes()
-        }
+        qrCodes.removeAll { $0.id == item.id }
+        saveQRCodes()
     }
 }
 
-class AppDelegate: NSObject, NSApplicationDelegate {
-    var statusItem: NSStatusItem?
-    var popover: NSPopover?
-    var eventMonitor: Any?
-    var hotKeyRef: EventHotKeyRef?
-    
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var hotKeyRef: EventHotKeyRef?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        setupStatusItem()
-        setupPopover()
         setupGlobalHotkey()
     }
-    
-    func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        
-        if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "qrcode", accessibilityDescription: "QR Code Generator")
-            button.action = #selector(togglePopover)
-            button.target = self
-        }
-    }
-    
-    func setupPopover() {
-        popover = NSPopover()
-        popover?.contentSize = NSSize(width: 300, height: 400)
-        popover?.behavior = .transient
-        popover?.contentViewController = NSHostingController(rootView: ContentView())
-        
-        // 添加点击外部关闭 popover
-        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
-            if let strongSelf = self, let popover = strongSelf.popover, popover.isShown {
-                strongSelf.closePopover()
-            }
-        }
-    }
-    
-    // 定义全局的事件处理函数
+
     func hotKeyHandler(nextHandler: EventHandlerCallRef?, event: EventRef?, userData: UnsafeMutableRawPointer?) -> OSStatus {
-            guard let event = event else { return noErr }
-            
-            var hotKeyID = EventHotKeyID()
-            let status = GetEventParameter(
-                event,
-                EventParamName(kEventParamDirectObject),
-                EventParamType(typeEventHotKeyID),
-                nil,
-                MemoryLayout<EventHotKeyID>.size,
-                nil,
-                &hotKeyID
-            )
-            
-            if status == noErr {
-                let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData!).takeUnretainedValue()
-                DispatchQueue.main.async {
-                    appDelegate.togglePopover()
-                }
+        guard let event else { return noErr }
+
+        var hotKeyID = EventHotKeyID()
+        let status = GetEventParameter(
+            event,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &hotKeyID
+        )
+
+        guard status == noErr else { return noErr }
+
+        DispatchQueue.main.async {
+            Task { @MainActor in
+                MenuBarExtraCoordinator.shared.togglePanel()
             }
-            return noErr
         }
-    
-    // 设置全局快捷键
+        return noErr
+    }
+
     func setupGlobalHotkey() {
-            // 创建唯一的快捷键标识
-            var hotKeyID = EventHotKeyID()
-            hotKeyID.signature = OSType("QRCD".utf8.reduce(0, { $0 << 8 + OSType($1) }))
-            hotKeyID.id = 1
-            
-            // 设置快捷键组合: Command + Control + Q
-            let modifiers = UInt32(cmdKey | controlKey)
-            let keyCode = UInt32(kVK_ANSI_Q)  // 使用 Q 键
-            
-            // 注册快捷键
-            let status = RegisterEventHotKey(
-                keyCode,
-                modifiers,
-                hotKeyID,
-                GetApplicationEventTarget(),
-                0,
-                &hotKeyRef
-            )
-            
-            if status != noErr {
-                print("Failed to register hotkey: \(status)")
-                return
-            }
-            
-            // 设置事件处理
-            var eventType = EventTypeSpec(
-                eventClass: OSType(kEventClassKeyboard),
-                eventKind: UInt32(kEventHotKeyPressed)
-            )
-            
-            let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-            
-            // 安装事件处理器
-            InstallEventHandler(
-                GetApplicationEventTarget(),
-                { (nextHandler, eventRef, userData) -> OSStatus in
-                    let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData!).takeUnretainedValue()
-                    return appDelegate.hotKeyHandler(nextHandler: nextHandler, event: eventRef, userData: userData)
-                },
-                1,
-                &eventType,
-                selfPtr,
-                nil
-            )
+        var hotKeyID = EventHotKeyID()
+        hotKeyID.signature = OSType("QRCD".utf8.reduce(0, { $0 << 8 + OSType($1) }))
+        hotKeyID.id = 1
+
+        let modifiers = UInt32(cmdKey | controlKey)
+        let keyCode = UInt32(kVK_ANSI_Q)
+
+        let status = RegisterEventHotKey(
+            keyCode,
+            modifiers,
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &hotKeyRef
+        )
+
+        guard status == noErr else {
+            print("Failed to register hotkey: \(status)")
+            return
         }
-    
-    @objc func togglePopover() {
-        if let button = statusItem?.button {
-            if let popover = popover {
-                if popover.isShown {
-                    closePopover()
-                } else {
-                    showPopover(button)
-                }
-            }
-        }
+
+        var eventType = EventTypeSpec(
+            eventClass: OSType(kEventClassKeyboard),
+            eventKind: UInt32(kEventHotKeyPressed)
+        )
+
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+
+        InstallEventHandler(
+            GetApplicationEventTarget(),
+            { (_, eventRef, userData) -> OSStatus in
+                let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData!).takeUnretainedValue()
+                return appDelegate.hotKeyHandler(nextHandler: nil, event: eventRef, userData: userData)
+            },
+            1,
+            &eventType,
+            selfPtr,
+            nil
+        )
     }
-    
-    func showPopover(_ sender: NSView) {
-        if let popover = popover {
-            popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
-            NSApp.activate(ignoringOtherApps: true)
-        }
-    }
-    
-    func closePopover() {
-        popover?.performClose(nil)
-    }
-    
+
     func applicationWillTerminate(_ notification: Notification) {
-        if let hotKeyRef = hotKeyRef {
+        if let hotKeyRef {
             UnregisterEventHotKey(hotKeyRef)
         }
     }
-    
-    // 防止应用程序在没有窗口时终止
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return false
-    }
-}
-
-//
-//  QRCodeGeneratorView.swift
-//  qrcode_generator
-//
-//  Created by 郝宜文 on 2024/11/5.
-//
-
-// QR码生成器视图
-struct QRCodeGeneratorView: View {
-    let content: String
-    
-    var body: some View {
-        if let qrImage = generateQRCode(from: content) {
-            Image(nsImage: qrImage)
-                .resizable()
-                .interpolation(.none)
-                .scaledToFit()
-        }
-    }
-    
-    private func generateQRCode(from string: String) -> NSImage? {
-        let context = CIContext(options: [CIContextOption.useSoftwareRenderer: true])
-        let filter = CIFilter.qrCodeGenerator()
-        filter.message = Data(string.utf8)
-        
-        guard let outputImage = filter.outputImage else { return nil }
-        let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
-        
-        guard let cgImage = context.createCGImage(scaled, from: scaled.extent) else { return nil }
-        return NSImage(cgImage: cgImage, size: NSSize(width: 200, height: 200))
+        false
     }
 }
 //
@@ -325,23 +303,6 @@ struct ContentView: View {
         }
     }
     
-    func showDetailView(qrImage: NSImage, content: String) {
-        let detailView = QRCodeDetailView(qrImage: qrImage, content: content)
-        let controller = NSHostingController(rootView: detailView)
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 350),
-            styleMask: [.titled, .fullSizeContentView], // 移除关闭按钮，只保留标题栏
-            backing: .buffered,
-            defer: false
-        )
-        window.isMovableByWindowBackground = true // 允许通过背景拖动窗口
-        window.titlebarAppearsTransparent = true // 标题栏透明
-        window.titleVisibility = .hidden // 隐藏标题
-        window.contentViewController = controller
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-    }
-    
     private func copyQRCodeToClipboard(_ image: NSImage) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
@@ -361,13 +322,14 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                Text("⌘⌃Q")  // 修改为正确的快捷键
+                Text("⌘⌃Q")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(4)
+                    .background(AppColors.controlBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .help("全局快捷键：显示/隐藏窗口")
                 
                 Button(action: {
                     if let window = NSApp.windows.first(where: { $0.isKeyWindow }) {
@@ -387,7 +349,7 @@ struct ContentView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color(NSColor.windowBackgroundColor))
+            .background(AppColors.chromeBackground)
             
             Divider()
             
@@ -403,7 +365,7 @@ struct ContentView: View {
                                 .cornerRadius(6)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 6)
-                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                        .stroke(AppColors.subtleBorder, lineWidth: 1)
                                 )
                             
                             // 按钮组垂直排列
@@ -419,7 +381,7 @@ struct ContentView: View {
                                         .frame(width: 28, height: 28)
                                 }
                                 .buttonStyle(.borderless)
-                                .background(Color(NSColor.controlBackgroundColor))
+                                .background(AppColors.controlBackground)
                                 .cornerRadius(6)
                                 .help("清除内容")
                                 .disabled(inputText.isEmpty)
@@ -435,7 +397,7 @@ struct ContentView: View {
                                         .frame(width: 28, height: 28)
                                 }
                                 .buttonStyle(.borderless)
-                                .background(Color(NSColor.controlBackgroundColor))
+                                .background(AppColors.controlBackground)
                                 .cornerRadius(6)
                                 .help("从剪贴板粘贴")
                                 .disabled(NSPasteboard.general.string(forType: .string) == nil)
@@ -463,7 +425,7 @@ struct ContentView: View {
                                     .resizable()
                                     .interpolation(.none)
                                     .frame(width: 120, height: 120)
-                                    .background(Color.white)
+                                    .background(AppColors.qrCodeSurface)
                                     .cornerRadius(8)
                                     .shadow(radius: 1)
                                     .onTapGesture {
@@ -494,7 +456,7 @@ struct ContentView: View {
                                 .padding(.top, 8)
                             }
                             .padding()
-                            .background(Color(NSColor.controlBackgroundColor))
+                            .background(AppColors.controlBackground)
                             .cornerRadius(8)
                         }
                     }
@@ -517,7 +479,7 @@ struct ContentView: View {
                         
                         TextField("搜索历史记录", text: $searchText)
                             .font(.system(size: 12))
-                            .textFieldStyle(PlainTextFieldStyle())
+                            .textFieldStyle(.plain)
                         
                         if !searchText.isEmpty {
                             Button(action: {
@@ -527,11 +489,11 @@ struct ContentView: View {
                                     .foregroundStyle(.secondary)
                                     .font(.system(size: 12))
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(6)
-                    .background(Color(NSColor.controlBackgroundColor))
+                    .background(AppColors.controlBackground)
                     .cornerRadius(6)
                 }
                 .padding(.horizontal, 12)
@@ -549,7 +511,7 @@ struct ContentView: View {
                            .foregroundStyle(.secondary)
                    }
                    .frame(maxWidth: .infinity, minHeight: 100)
-                   .background(Color(NSColor.controlBackgroundColor))
+                   .background(AppColors.controlBackground)
                } else {
                    LazyVStack(spacing: 0) {
                        ForEach(filteredHistory) { item in
@@ -561,7 +523,7 @@ struct ContentView: View {
                            }
                        }
                    }
-                   .background(Color(NSColor.controlBackgroundColor))
+                   .background(AppColors.controlBackground)
                }
             }
             .scrollContentBackground(.hidden)  // 添加这个
@@ -611,7 +573,7 @@ struct ContentView: View {
                 }
                 .padding(8)
             }
-            .background(Color(NSColor.windowBackgroundColor))
+            .background(AppColors.chromeBackground)
         }
         .frame(width: 500, height: 600)
         .onAppear {
@@ -638,7 +600,7 @@ struct HistoryItemView: View {
                 
                 Text(formatDate(item.timestamp))
                     .font(.caption)
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.secondary)
             }
             
             Spacer()
@@ -649,7 +611,7 @@ struct HistoryItemView: View {
                     .resizable()
                     .interpolation(.none)
                     .frame(width: 50, height: 50)
-                    .background(Color.white)
+                    .background(AppColors.qrCodeSurface)
                     .cornerRadius(4)
                     .popover(isPresented: $showPopover, arrowEdge: .trailing) {
                         QRCodeDetailView(qrImage: qrImage, content: item.content)
@@ -669,7 +631,7 @@ struct HistoryItemView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(AppColors.controlBackground)
         .cornerRadius(8)
     }
     
@@ -694,7 +656,7 @@ struct QRCodeDetailView: View {
                 .interpolation(.none)
                 .scaledToFit()
                 .frame(width: 200, height: 200)
-                .background(Color.white)
+                .background(AppColors.qrCodeSurface)
                 .cornerRadius(8)
                 .shadow(radius: 2)
             
@@ -746,7 +708,7 @@ struct DonateView: View {
                 .interpolation(.none)
                 .scaledToFit()
                 .frame(width: 200, height: 300)
-                .background(Color.white)
+                .background(AppColors.qrCodeSurface)
                 .cornerRadius(8)
                 .shadow(radius: 2)
             
